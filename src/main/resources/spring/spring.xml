@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        
+	http://www.springframework.org/schema/util
+	http://www.springframework.org/schema/util/spring-util-3.1.xsd
+        
+        http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-3.1.xsd"
+        >
+            
+    <!-- ****************** Tworzenie beanów ****************** -->
+
+    <bean id="duke" class="springidol.Juggler">
+        <constructor-arg value="15"/>
+    </bean>
+    
+    <bean id="sonet29" class="springidol.Sonet29"/>
+    
+    <bean id="poeticDuke" class="springidol.PoeticJuggler">
+        <constructor-arg value="15"/>
+        <constructor-arg ref="sonet29"/> 
+    </bean> 
+
+    <!--Metody wywoływane po utowrzeniem obiektu, oraz przed ich usunięciem-->
+    <bean id="auditorium"
+        class="springidol.Auditorium"
+        init-method="turnOnLights"
+        destroy-method="turnOffLights"/>
+        
+    <!--Innym rozwiązaniem może być dodanie do beans poniższych atrybutów:
+            default-init-method="method1"
+            default-destroy-method="method2"
+        Metody te będą wywoływane na wszystkich beanach wewnątrz kontenera (wszystkie beany muszą posiadać takie metody)-->
+
+
+    <!-- ****************** zakres widoczności ****************** -->
+    <!-- singleton, prototype, request, session, global-session-->
+    
+    <bean id="theStage" class="springidol.Stage" factory-method="getInstance" scope="singleton"/>
+    
+    
+    <!-- ****************** Wstrzykiwanie zależności (settery) ****************** -->
+    
+    <!-- domyślnie ustawione na primary="true" -->
+    <bean id="saxophone" class="springidol.Saxophone"/>
+    <bean id="piano" class="springidol.Piano"/>
+    
+    <bean id="kenny" class="springidol.Instrumentalist">
+        <property name="song" value="Jingle Bells"/>
+        <property name="age" value="20" />
+        <property name="instrument" ref="piano"/>
+    </bean>
+    
+    <!-- Wstrzyknięcie instrumentu poprzez utworzenie nowego saxophonu 
+         Tworzony jest wewnętrzny bean do którego dostęp ma tylko kenny2 -->
+    <bean id="kenny2" class="springidol.Instrumentalist">
+        <property name="song" value="Jingle Bells"/>
+        <property name="instrument">
+            <bean class="springidol.Saxophone"/>
+        </property>
+    </bean>
+    
+    <!--    To samo co wyżej tylko za pomocą konstruktora    -->
+    <bean id="duke2" class="springidol.PoeticJuggler">
+        <constructor-arg value="15"/>
+        <constructor-arg>
+            <bean class="springidol.Sonet29"/>
+        </constructor-arg>            
+    </bean>
+    
+    <!-- ****************** Wstrzykiwanie kolekcji ****************** -->
+    <!-- <list>, <set>, <map>, <props> -->
+    
+    <!--<list> i <set> mogą być używane zamiennie z implementacją: Collection, List, Set-->
+    <bean id="hank" class="springidol.OneManBand">
+        <property name="instruments">
+            <set>
+                <ref bean="piano"/>
+                <ref bean="saxophone"/>
+            </set>
+            <!--Można używać zamiennie z: -->
+            <!-- <list>
+                <ref bean="piano"/>
+                <ref bean="saxophone"/>
+            </list>-->
+        </property>
+    </bean>
+    
+    <bean id="hank2" class="springidol.OneManBand2">
+        <property name="instruments">
+            <map>
+                <entry key="piano" value-ref="piano"/>
+                <entry key="saxophone" value-ref="saxophone"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="hank3" class="springidol.OneManBand3">
+        <property name="instruments">
+            <props>
+                <prop key="piano" >pi pi pi</prop>
+                <prop key="saxophone">trum trum trum</prop>
+            </props>
+        </property>
+    </bean>
+    
+    <!--Wiring null -->
+    <!-- <property name="someNonNullProperty"><null/></property> -->
+        
+        
+    <!-- ****************** Spting Expression Language (SpEL) ****************** -->
+    
+    <!--  
+        Liczby
+        <property name="count" value="#{5}"/>
+        <property name="count" value="#{89.7}"/>
+        String
+        <property name="name" value="#{'chuck'}"/>
+        Boolean
+        <property name="enabled" value="#{true}"/>
+        
+        Reference by bean id:
+        <property name="instrument" value="#{saxophone}"/>
+        
+        use bean reference to access properties:
+    -->
+    <bean id="carl" class="springidol.Instrumentalist">
+        <property name="song" value="#{kenny.song}"/>
+        <property name="age" value="#{T(java.lang.Math).PI}" />
+        <!--<property name="song" value="#{songSelector.selectSong()}"/>-->
+        <!--<property name="song" value="#{kenny.song.toUpperCase()}"/>-->
+        <!-- ?. - operator oancza, że jeśli kenny.song == null to metoda toUpperCase() nie zostaje wywołana -->
+        <!--<property name="song" value="#{kenny.song?.toUpperCase()}"/>-->
+    </bean>
+    
+    <!--  
+        Typy:
+            T(java.lang.Math) - rezultatem tego operatora jest obiekt Class reprezentujący java.lang.Math
+            Operator ten daje nam dostęp do statycznych pól i metod
+
+            <property name="multipler" value="#{T(java.lang.Math).PI}"/>
+            <property name="multipler" value="#{T(java.lang.Math).random()}"/>
+    -->
+    
+    <!--  
+        Operacje na wyrażeniach SpEL:
+            Arytmetyczne: +, -, *, /, %, ^
+                <property name="area" value="#{T(java.lang.Math).PI * circle.radius ^ 2}"/>
+                <property name="fullName" value="#{performer.firstName + ' ' + performer.lastName}"/>   //w tym wypadku operator + użyty został do konkatenacji znaków
+            Relacyjne: <. >, ==, <=, >=, lt, gt, eq, le, ge
+                <property name="equal" value="#{counter.total == 100}"/>
+                <property name="capability" value="#{counter.total le 1000}"/>
+            Logiczne: and, or, not, !
+                <property name="largeCircle" value="#{shape.kind == 'circle' and shape.perimeter gt 10000}"/>
+                <property name="outOfStock" value="#{!product.available}"/>
+                <property name="outOfStock" value="#{not product.available}"/>
+            Conditional: ?:
+                <property name="instrument" value="#{songSelector.selectSong()=='Jingle Bells'?piano:saxophone}"/>
+                
+                <property name="song" value="#{keny.song != null ? kenny.song : 'Greensleeves'}"/>
+                <property name="song" value="#{keny.song ?:'Greensleeves'}"/>
+            Regexp: matches
+                <property name="isValidEmail" value="#{admin.email matches '[a-z0-9]+@[a-z0-9]+\\.com'}"/>
+    -->
+    
+    <!--  
+        Operacje na kolekacjach
+    -->
+    
+    <util:list id="cities">
+        <bean class="springidol.City">
+            <property name="name" value="Chicago"/>
+            <property name="state" value="IL"/>
+            <property name="population" value="285000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Atlanta"/>
+            <property name="state" value="GE"/>
+            <property name="population" value="55000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Dallas"/>
+            <property name="state" value="TX"/>
+            <property name="population" value="125000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Houston"/>
+            <property name="state" value="TX"/>
+            <property name="population" value="225000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Odessa"/>
+            <property name="state" value="TX"/>
+            <property name="population" value="9000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="El Paso"/>
+            <property name="state" value="TX"/>
+            <property name="population" value="65000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Jal"/>
+            <property name="state" value="NM"/>
+            <property name="population" value="2000"/>
+        </bean>
+        <bean class="springidol.City">
+            <property name="name" value="Las Cruces"/>
+            <property name="state" value="NM"/>
+            <property name="population" value="9100"/>
+        </bean>
+    </util:list>
+    
+    <bean id="chosenCity" class="springidol.City">
+        <property name="city" value="#{cities[2]}"/>
+    </bean>
+        
+    <bean id="chosenCity2" class="springidol.City">
+        <property name="city" value="#{cities[T(java.lang.Math).random() * cities.size()]}"/>
+    </bean>
+    
+    <!-- 
+        jeśli obiekt City jest mapą:          
+            <property name="city" value="#{cities['Dallas']}"/>
+    -->
+    
+    <!-- wczytanie pliku properties z dysku -->
+    <util:properties id="settings" location="classpath:settings.properties"/>
+    
+    <bean id="chosenCity3" class="springidol.City">
+        <property name="city" value="#{cities[2]}"/>
+        <property name="propertyString" value="#{settings['propertyString']}"/>
+    </bean>
+    <!-- Dostępne są dwa typy properties: systemEnviroment oraz systemProperties np. #{systemEnviroment['HOME']} -->
+    
+    <!--  
+        selecting collections members:
+            <property name="bigCities" value="#{cities.?[population gt 10000]}"/>
+        dostępne są dwa dodatkowe operatory: 
+            .^[] - pobiera pierwszy element który spełnił kryteria
+                <property name="bigCities" value="#{cities.^[population gt 10000]}"/>
+            .$[] - pobiera ostatni element który spełnił kryteria
+                <property name="bigCities" value="#{cities.$[population gt 10000]}"/>
+                
+        projecting collections
+            .![] - tworzy nową kolekcję na podstawie innej
+                <property name="cityNames" value="#{cities.![name]}"/>
+                <property name="cityNames" value="#{cities.![name + ', ' + state]}"/>
+                
+                <property name="cityNames" value="#{cities.?[population gt 10000].![name + ', ' + state]}"/>
+    -->
+    
+    
+    <!-- ****************** Autowiring in xml****************** -->
+    
+    <!-- byName - pole instrument obiektu kenny zostanie autowired poprzez bean o id instrument
+         jeśli wiele obiektów ma pole instrument oraz autowired ustawione na byName to wszystkim obiektom zostanie przypisany ten sam obiekt o id: instrument
+            <bean id="kenny" class="springidol.Instrumentalist" autowire="byName">
+                <property name="song" value="Jingle Bells"/>
+            </bean>
+            
+            
+        byType - dopasowuje do pola bean o takim samym typie. Należy pamiętać, że jeśli w kontenerze
+        istnieje więcej beanów o takim samym typie to wyrzucony zostanie wyjątek.
+        
+            <bean id="kenny" class="springidol.Instrumentalist" autowire="byType">
+                    <property name="song" value="Jingle Bells"/>
+            </bean
+            
+        primary określa czy bean ma być traktowany jako domyślny przy autowired ustawionym na byType
+        domyślnie ustawione na primary="true"
+            <bean id="saxophone" class="springidol.Saxophone" primary="false"/>
+        elminuje bean jako kandydata
+            <bean id="saxophone" class="springidol.Saxophone" autowire-candidate="false"/>
+        
+        
+        constructors
+        jeśli jest więcej niż jeden konstruktor i oba pasują to wyrzucany jest wyjątek
+        jeśli dwa obiekty pasują do argumentu konstruktora to wyrzucany jest wyjątek
+            <bean id="poeticDuke" class="springidol.PoeticJuggler" autowire="constructor"/>
+            
+            
+        autodetect (nie ma już??)
+        W pierwszej kolejności stosowany jest constructors, jeśli się nie powiedzie to zastosowany zostaje byType
+        
+        
+        default-autowire="byType" - ustawienie globalne dla wszystkich beanów. Atrybut należy dodać do tagu <beans ...>
+        domyślnie ustawiony jest na none
+        
+        
+        mixing autowiring
+            <bean id="kenny3" class="springidol.Instrumentalist" autowire="byType">
+                <property name="song" value="Jingle Bells"/>
+                <property name="age" value="20" />
+                <property name="instrument" ><null/></property>
+            </bean>
+    -->
+</beans>

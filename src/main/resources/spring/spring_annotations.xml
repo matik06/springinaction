@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        
+	http://www.springframework.org/schema/util
+	http://www.springframework.org/schema/util/spring-util-3.1.xsd
+        
+        http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-3.1.xsd"
+        >
+            
+    <!-- ****************** Wirring with annotations ****************** -->    
+    
+    <!-- Umożliwia dodawani adnotacji w obiektach POJO -->
+    <!-- <context:annotation-config/> -->
+    
+    <!-- umożliwia wszystko co <context:annotation-config/> oraz dodatkowo wpsiera discovering -->
+    <context:component-scan base-package="springidol">
+<!--        <context:include-filter type="assignable" expression="springidol.Instrument"/>        
+        <context:exclude-filter type="annotation" expression="springidol.annotations.StringedInstrument"/>-->
+    </context:component-scan>
+    
+    <!--
+        Filter type:
+        
+        annotation - klasy wymagają odpowiedniej adnotacji
+        assignable - klasy które implementują/dziedziczą dany obiekt przesłany w atrybucie exprexxion
+        aspectj - klasy pasujące do wyrażenia aspectj
+        custom - własna implementacja klasy org.springframework.core.type.TypeFilter
+        regex - klasy których nazwa pasuje do wyrażenia regularnego
+    -->
+
+
+    <bean id="saxophone" class="springidol.Saxophone"/>
+    <bean id="piano" class="springidol.Piano"/>
+    
+    <bean id="kenny" class="springidol.annotations.Instrumentalist">
+        <!-- ponieważ klasa ma ustawioną adnotacją @Autowired na setInstrument nie musimy ustawiać dla tego pola tagu property -->
+<!--        <property name="song" value="Jingle Bells"/>-->
+<!--        <property name="age" value="20" />-->
+    </bean>
+        
+    <!-- wczytanie pliku properties z dysku-->
+    <util:properties id="settings" location="classpath:settings.properties"/>
+    
+</beans>
